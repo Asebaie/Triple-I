@@ -47,18 +47,36 @@ log("Target Encoding (CV-safe)...")
 cat_features = X.select_dtypes('object').columns.tolist()
 global_mean = y_raw.mean()
 
+target_encoders = {}
 for col in cat_features:
-    enc = train.groupby(col)['target'].mean()
-    X[col + '_enc'] = X[col].map(enc).fillna(global_mean)
-    X_test[col + '_enc'] = X_test[col].map(enc).fillna(global_mean)
+    enc_map = train.groupby(col)['target'].mean().to_dict()
+    target_encoders[col] = enc_map
+
+median_values = X.median(numeric_only=True)
+
+X_train_processed = X.copy()
+for col in cat_features:
+    X_train_processed[col + '_enc'] = X_train_processed[col].map(target_encoders[col]).fillna(global_mean)
+
+X_train_processed = X_train_processed.fillna(median_values)
+for col in cat_features:
+    X_train_processed[col] = X_train_processed[col].astype(str).fillna('missing')
+X_train_processed_final = X_train_processed.drop(columns=cat_features)
+feature_columns = X_train_processed_final.columns.tolist()
+
+log("Сохранение метаданных препроцессинга в model_bundle.pkl")
+
+for col in cat_features:
+    X[col + '_enc'] = X[col].map(target_encoders[col]).fillna(global_mean)
+    X_test[col + '_enc'] = X_test[col].map(target_encoders[col]).fillna(global_mean)
 log(f"Добавлено {len(cat_features)} enc-признаков")
 
 
 
 
 log("Импутация пропусков и удаление object-колонок...")
-X = X.fillna(X.median(numeric_only=True))
-X_test = X_test.fillna(X.median(numeric_only=True))
+X = X.fillna(median_values)
+X_test = X_test.fillna(median_values)
 
 for col in cat_features:
     X[col] = X[col].astype(str).fillna('missing')
@@ -173,7 +191,11 @@ joblib.dump({
     'lgb': final_lgb,
     'explainer': explainer,
     'cat_features': cat_features,
-    'blend_weights': [0.65, 0.35]
+    'blend_weights': [0.65, 0.35],
+    'target_encoders': target_encoders,
+    'global_mean': global_mean,
+    'median_values': median_values,
+    'feature_columns': feature_columns
 }, 'model_bundle.pkl')
 log("model_bundle.pkl — СОХРАНЁН")
 
@@ -188,6 +210,7 @@ with open('cv_report.txt', 'w', encoding='utf-8') as f:
     f.write("Логарифм: log1p(target)\n")
     f.write("SHAP: полный\n")
     f.write("Риски: отсутствуют\n")
+    f.write("Препроцессинг: метаданные сохранены\n")
 log("cv_report.txt — СОЗДАН")
 
 log("=== ОБУЧЕНИЕ УСПЕШНО ЗАВЕРШЕНО ===")
