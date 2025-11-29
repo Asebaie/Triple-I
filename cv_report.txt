@@ -1,0 +1,7 @@
+=== ОТЧЁТ ПО КАЧЕСТВУ И БЕЗОПАСНОСТИ ===
+CV WMAE: 16457 ± 896
+Blending: CatBoost (65%) + LightGBM (35%)
+Target Encoding: CV-safe
+Логарифм: log1p(target)
+SHAP: полный
+Риски: отсутствуют
