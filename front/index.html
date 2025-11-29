@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>AI-сервис Альфа-Банка: прогноз дохода</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --alfa-red: #ff1f1f;
+            --alfa-dark: #111111;
+            --alfa-gray: #f5f6fa;
+            --alfa-border: #e1e4eb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--alfa-gray);
+            color: #222;
+        }
+
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .logo-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--alfa-red);
+            color: white;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .subtitle {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .column {
+            flex: 1 1 320px;
+            min-width: 320px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 18px 18px 16px;
+            border: 1px solid var(--alfa-border);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.03);
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            margin: 0 0 10px;
+            font-size: 16px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 12px;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            border-radius: 999px;
+            border: none;
+            padding: 8px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            background: var(--alfa-red);
+            color: white;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform 0.05s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+        }
+
+        button.secondary {
+            background: white;
+            color: #333;
+            border: 1px solid var(--alfa-border);
+        }
+
+        button:active {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .status {
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .status.ok {
+            color: #2e7d32;
+        }
+
+        .status.error {
+            color: #c62828;
+        }
+
+        .status.loading {
+            color: #fb8c00;
+        }
+
+        .income-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 4px 0;
+        }
+
+        .income-sub {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #eef3ff;
+            color: #304ffe;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            margin-top: 6px;
+        }
+
+        .pill-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #304ffe;
+        }
+
+        .label {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .shap-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .shap-item {
+            font-size: 13px;
+        }
+
+        .shap-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .shap-name {
+            font-weight: 600;
+        }
+
+        .shap-rank {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #ffecec;
+            color: var(--alfa-red);
+            white-space: nowrap;
+        }
+
+        .shap-bar {
+            position: relative;
+            height: 6px;
+            border-radius: 999px;
+            background: #f0f2f7;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .shap-bar-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--alfa-red), #ff7a7a);
+            width: 0%;
+        }
+
+        .reco-list {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .reco-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .reco-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: #fff0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .reco-content {
+            flex: 1;
+        }
+
+        .reco-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .reco-reason {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .metrics-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .metric-chip {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #f1f5f9;
+            color: #555;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 190px;
+            margin-top: 8px;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <header class="header">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="logo-circle">A</div>
+            <div class="title-block">
+                <h1>AI-сервис прогноза дохода клиента</h1>
+                <p class="subtitle">
+                    Прототип, подключённый к ML-модели Альфа-Банка: прогноз дохода, объяснение и продуктовые рекомендации.
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <div class="layout">
+        <!-- Левая колонка: ввод + рекомендации -->
+        <section class="column">
+            <div class="card">
+                <h3>1. Выбор клиента</h3>
+                <p class="card-desc">
+                    Для демо используются профили из обучающего датасета. По кнопке фронтенд шлёт профиль в API.
+                </p>
+                <div class="button-row">
+                    <button id="btn-client1" onclick="sendClient('client1')">Клиент 1</button>
+                    <button id="btn-client2" class="secondary" onclick="sendClient('client2')">Клиент 2</button>
+                </div>
+                <p id="status" class="status"></p>
+                <div class="metrics-row">
+                    <span class="metric-chip">Модель: CatBoost + LightGBM</span>
+                    <span class="metric-chip">Признаков: 221</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>О модели</h3>
+                <p class="card-desc">
+                    Модель обучена на исторических данных, использует target encoding для категориальных признаков
+                    и ансамбль градиентного бустинга.
+                </p>
+                <p class="income-sub">
+                    Интерфейс работает через REST API (FastAPI): фронт отправляет профиль клиента → backend повторяет
+                    препроцессинг → возвращает прогноз и SHAP-объяснение.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>4. Рекомендации по продуктам</h3>
+                <p class="card-desc">
+                    Простое правило, завязанное на прогноз дохода. В бою сюда подключается витрина продуктов
+                    и сценарии next best offer.
+                </p>
+                <ul id="reco-list" class="reco-list">
+                    <li class="reco-item">
+                        <div class="reco-icon">💡</div>
+                        <div class="reco-content">
+                            <div class="reco-title">Ожидаются рекомендации</div>
+                            <div class="reco-reason">Выберите клиента, чтобы увидеть, что мы предложим.</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        
+        <section class="column">
+            <div class="card">
+                <h3>2. Прогноз дохода</h3>
+                <p class="card-desc">
+                    Значение можно использовать для расчёта ПДН и персонализации финансовых предложений.
+                </p>
+                <p class="label">Прогнозируемый ежемесячный доход</p>
+                <p class="income-value" id="income">—</p>
+                <p class="income-sub" id="income-sub">
+                    Нажмите на клиента, чтобы получить прогноз.
+                </p>
+                <div class="pill" id="segment-pill" style="display:none;">
+                    <span class="pill-dot"></span>
+                    <span id="segment-text"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>3. Объяснение прогноза (SHAP)</h3>
+                <p class="card-desc">
+                    Топ-факторы, которые сильнее всего повлияли на текущий прогноз (сверху — самый сильный фактор).
+                </p>
+                <ul id="shap-list" class="shap-list">
+                    <li class="shap-item">Нажмите на клиента, чтобы увидеть факторы влияния.</li>
+                </ul>
+            </div>
+
+            
+            <div class="card">
+                <h3>5. Мониторинг модели (демо-дашборд)</h3>
+                <p class="card-desc">
+                    Небольшой мониторинг, который показывает историю прогнозов и вклад признаков для последнего клиента.
+                </p>
+                <div class="chart-container">
+                    <canvas id="incomeChart"></canvas>
+                </div>
+                <p class="income-sub">История прогнозов дохода по нажатиям на клиентов.</p>
+                <div class="chart-container" style="margin-top:12px;">
+                    <canvas id="shapChart"></canvas>
+                </div>
+                <p class="income-sub">Вклад топ-признаков (SHAP) для последнего прогноза.</p>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    const clients = {
+  client1: {
+  "id": 0,
+  "dt": "31.08.2024",
+  "turn_cur_cr_avg_act_v2": 805319.38,
+  "salary_6to12m_avg": null,
+  "hdb_bki_total_max_limit": "61137.47",
+  "dp_ils_paymentssum_avg_12m": null,
+  "hdb_bki_total_cc_max_limit": "60000.0",
+  "incomeValue": 159999.0,
+  "gender": "????óñü",
+  "avg_cur_cr_turn": 69740.0,
+  "adminarea": "???????óø? ÿ??õ???ñóø",
+  "turn_cur_cr_avg_v2": 67109.94833,
+  "turn_cur_cr_max_v2": 70005.0,
+  "hdb_bki_total_pil_max_limit": "61137.47",
+  "age": 59,
+  "dp_ils_avg_salary_1y": null,
+  "turn_cur_cr_sum_v2": 805319.38,
+  "by_category__amount__sum__eoperation_type_name__ishodjaschij_bystryj_platezh_sbp": 3538.356164,
+  "turn_cur_db_sum_v2": 845759.33,
+  "turn_cur_db_avg_act_v2": 845759.33,
+  "dp_ils_avg_salary_2y": null,
+  "curr_rur_amt_cm_avg": 88972.0,
+  "turn_cur_db_avg_v2": 70479.94417,
+  "by_category__amount__sum__eoperation_type_name__vhodjaschij_bystryj_platezh_sbp": null,
+  "dp_ils_paymentssum_avg_6m": null,
+  "avg_cur_db_turn": 61405.0,
+  "hdb_bki_active_cc_max_limit": null,
+  "incomeValueCategory": 7.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__vydacha_nalichnyh_v_bankomate": null,
+  "avg_credit_turn_rur": 69740.0,
+  "dp_ils_salary_ratio_1y3y": null,
+  "by_category__amount__sum__eoperation_type_name__perevod_po_nomeru_telefona": 4643.835616,
+  "turn_cur_cr_7avg_avg_v2": 40002.0,
+  "dp_ils_accpayment_avg_12m": null,
+  "curbal_usd_amt_cm_avg": 0,
+  "avg_by_category__amount__sum__cashflowcategory_name__supermarkety": 1300.990685,
+  "avg_loan_cnt_with_insurance": null,
+  "avg_by_category__amount__sum__cashflowcategory_name__gipermarkety": 2611.537808,
+  "city_smart_name": "????ó",
+  "uniV5": 0.0244413,
+  "turn_cur_db_max_v2": 100000.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__kafe": 986.2191781,
+  "turn_other_db_max_v2": null,
+  "turn_cur_cr_min_v2": 805319.38,
+  "hdb_bki_other_active_pil_outstanding": null,
+  "dp_ewb_last_employment_position": null,
+  "turn_cur_db_min_v2": 845759.33,
+  "hdb_bki_total_products": "6.0",
+  "per_capita_income_rur_amt": 36013.0,
+  "avg_debet_turn_rur": 61405.0,
+  "hdb_relend_active_max_psk": 0.0,
+  "dda_rur_amt_curr_v2": 82037.0,
+  "mob_cnt_days": 25.0,
+  "dp_ils_days_from_last_doc": null,
+  "avg_6m_money_transactions": 0.0,
+  "transaction_category_supermarket_percent_cnt_2m": 0.657894737,
+  "pil": 0.0,
+  "hdb_bki_total_max_overdue_sum": "2395.0",
+  "avg_6m_clothing": 840.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__elektronnye_dengi": null,
+  "addrref": "???????óø? ÿ??õ???ñóø",
+  "bki_total_auto_cnt": "0.0",
+  "dp_payoutincomedata_payout_avg_3_month": null,
+  "hdb_outstand_sum": 0.0,
+  "avg_3m_money_transactions": 0.0,
+  "dp_address_unique_regions": null,
+  "min_balance_rur_amt_6m_af": null,
+  "transaction_category_supermarket_sum_cnt_m3_4": 14.0,
+  "dp_payoutincomedata_payout_max_3_month": null,
+  "hdb_bki_total_ip_max_limit": null,
+  "hdb_bki_total_cnt": "36.0",
+  "blacklist_flag": 0,
+  "bki_total_oth_cnt": "0.0",
+  "dp_payoutincomedata_payout_sum_3_month": null,
+  "hdb_relend_outstand_sum": 0.0,
+  "total_rur_amt_cm_avg": 88972.0,
+  "mob_cover_days": 0.277777778,
+  "dp_payoutincomedata_payout_max_6_month": null,
+  "label_Below_50k_share_r1": 0.303030303,
+  "turn_fdep_db_sum_v2": null,
+  "dp_ils_accpayment_avg_6m_current": null,
+  "transaction_category_cash_percent_amt_2m": null,
+  "curr_rur_amt_3m_avg": 59660.0,
+  "transaction_category_restaurants_sum_amt_m2": null,
+  "loan_cnt": null,
+  "turn_fdep_db_avg_v2": null,
+  "turn_cur_db_7avg_avg_v2": 210.0,
+  "bki_total_ip_max_outstand": null,
+  "amount_by_category_90d__summarur_amt__sum__cashflowcategory_name__vydacha_nalichnyh_v_bankomate": null,
+  "profit_income_out_rur_amt_12m": 555.1666667,
+  "avg_6m_hotels": 0.0,
+  "hdb_ovrd_sum": 0.0,
+  "dp_ils_total_seniority": null,
+  "dp_ils_paymentssum_avg_6m_current": null,
+  "smsInWavg6m": 82.0938,
+  "avg_fdep_db_turn": 0.0,
+  "device_iphone_avg": 0.0,
+  "by_category__amount__sum__eoperation_type_name__platezh_za_mobilnyj_cherez_ps": null,
+  "avg_balance_rur_amt_1m_af": null,
+  "curr_rur_amt_cm_avg_period_days_ago_v2": 80228.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__oteli": null,
+  "hdb_bki_total_ip_cnt": "0.0",
+  "hdb_bki_active_cc_max_outstand": null,
+  "hdb_other_outstand_sum": null,
+  "days_to_last_transaction": 7.0,
+  "hdb_bki_total_pil_max_overdue": "2352.79",
+  "vert_pil_last_credit_step_screen_view_3m": 0.0,
+  "acard": 0.0,
+  "bki_total_il_max_limit": "61137.47",
+  "other_credits_count": 0.0,
+  "tz_msk_timedelta": 1.0,
+  "turn_save_db_min_v2": null,
+  "profit_income_out_rur_amt_9m": 564.2222222,
+  "dp_ils_ipkcurrentyear_currentyearpensfactor": null,
+  "avg_by_category__amount__sum__cashflowcategory_name__odezhda": 3842.834795,
+  "cntOnnRinCallAvg6m": null,
+  "dda_rur_amt_3m_avg": 59660.0,
+  "winback_cnt": 0,
+  "salary_median_in_gex_r1": 73690.36751,
+  "dp_payoutincomedata_payout_avg_prev_year": null,
+  "avg_amount_daily_transactions_90d": 643.6572222,
+  "vert_has_app_ru_tinkoff_investing": 0.0,
+  "transaction_category_supermarket_inc_cnt_2m": 1.216666667,
+  "vert_pil_sms_success_3m": 0.0,
+  "min_balance_rur_amt_1m_af": null,
+  "dp_ils_max_seniority": null,
+  "avg_by_category__amount__sum__cashflowcategory_name__set_supermarketov": null,
+  "label_500k_to_1M_share_r1": 0.060606061,
+  "avg_by_category__amount__sum__cashflowcategory_name__zarubezhnye_finansovye_operatsii": null,
+  "bki_total_products": "2.0",
+  "avg_6m_all": 14429.0,
+  "dp_ils_avg_simultanious_jobs_5y": null,
+  "dp_ewb_dismissal_due_contract_violation_by_lb_cnt": null,
+  "summarur_1m_purch": 210.0,
+  "diff_avg_cr_db_turn": 8334.66,
+  "dp_ils_cnt_changes_1y": null,
+  "dp_ils_employeers_cnt_last_month": null,
+  "dp_payoutincomedata_payout_avg_6_month": null,
+  "dp_ewb_last_organization": null,
+  "by_category__amount__sum__eoperation_type_name__perevod_mezhdu_svoimi_schetami": null,
+  "bki_active_auto_cnt": "0.0",
+  "turn_other_cr_avg_act_v2": null,
+  "cntVoiceOutMob6m": 204.5167,
+  "avg_by_category__amount__sum__cashflowcategory_name__puteshestvija": null,
+  "loanacc_rur_amt_cm_avg": 0.0,
+  "transaction_category_supermarket_sum_cnt_m2": 25.0,
+  "transaction_category_supermarket_sum_amt_d15": 210.0,
+  "avg_fdep_cr_turn": 0.0,
+  "transaction_category_restaurants_percent_cnt_2m": null,
+  "bki_total_max_limit": "61137.47",
+  "avg_by_category__amount__sum__cashflowcategory_name__reklama_v_internete": null,
+  "transaction_category_restaurants_percent_amt_2m": null,
+  "turn_fdep_db_avg_act_v2": null,
+  "dp_ils_accpayment_avg_6m": null,
+  "turn_other_cr_sum_v2": null,
+  "client_active_flag": 1,
+  "avg_by_category__amount__sum__cashflowcategory_name__produkty": 4171.100548,
+  "curr_rur_amt_cm_avg_inc_v2": -2999.0,
+  "nonresident_flag": 0,
+  "avg_by_category__amount__sum__cashflowcategory_name__kosmetika": 924.0,
+  "vert_has_app_ru_vtb_invest": 0.0,
+  "dp_ils_avg_salary_3y": null,
+  "hdb_bki_total_auto_max_limit": null,
+  "days_after_last_request": 43.0,
+  "cntRegionTripsWavg1m": 6.1788,
+  "vert_has_app_ru_cian_main": 0.0,
+  "loanacc_rur_amt_curr_v2": 0.0,
+  "avg_3m_no_cat": 0.0,
+  "vert_ghost_close_dpay3_last_days": 0.0,
+  "vert_has_app_ru_raiffeisennews": 0.0,
+  "dp_ils_days_ip_share_5y": null,
+  "avg_by_category__amount__sum__cashflowcategory_name__platezhi_cherez_internet": null,
+  "hdb_bki_total_micro_max_overdue": null,
+  "bki_total_active_products": "0.0",
+  "by_category__amount__sum__eoperation_type_name__perevod_s_karty_na_kartu": null,
+  "calledCtnOutGroup": null,
+  "vert_pil_loan_application_success_3m": 0.0,
+  "vert_pil_fee_discount_change_3m": 0.0,
+  "businessTelSubs": 0.0,
+  "profit_income_out_rur_amt_l2m": 467,
+  "avg_3m_healthcare_services": 4177.0,
+  "dp_ils_paymentssum_month_avg": null,
+  "ovrd_sum": null,
+  "hdb_bki_total_active_products": "0.0",
+  "hdb_bki_total_micro_cnt": "0.0",
+  "hdb_bki_active_pil_cnt": "0.0",
+  "loan_cur_amt": null,
+  "mob_total_sessions": 65.0,
+  "period_last_act_ad": null,
+  "dp_ils_days_multiple_job_share_2y": null,
+  "hdb_bki_total_cc_max_overdue": "0.0",
+  "lifetimeComp": 116.0,
+  "hdb_bki_total_pil_last_days": "1364.0",
+  "amount_by_category_90d__summarur_amt__sum__cashflowcategory_name__elektronnye_dengi": null,
+  "turn_save_cr_max_v2": null,
+  "hdb_bki_active_pil_max_limit": null,
+  "dp_ils_accpayment_avg_3m": null,
+  "avg_6m_restaurants": 844.0,
+  "hdb_bki_total_pil_cnt": "5.0",
+  "transaction_category_fastfood_percent_cnt_2m": null,
+  "hdb_bki_total_pil_max_del90": "0.0",
+  "accountsalary_out_flag": 1,
+  "cntBlockWavg6m": 0.0044,
+  "express_rur_amt_cm_avg": 0.0,
+  "loanacc_rur_amt_cm_avg_inc_v2": 0.0,
+  "hdb_bki_last_product_days": "1364.0",
+  "dp_ils_days_multiple_job_cnt_5y": null,
+  "dp_ils_accpayment_month_avg": null,
+  "cred_dda_rur_amt_3m_avg": 0.0,
+  "avg_3m_all": 19310.0,
+  "hdb_other_active_max_psk": 0.0,
+  "hdb_bki_other_active_ip_outstanding": null,
+  "total_sum": null,
+  "dp_ils_uniq_companies_1y": null,
+  "avg_6m_travel": 0.0,
+  "avg_6m_government_services": 0.0,
+  "hdb_bki_active_cc_max_overdue": null,
+  "total_rur_amt_cm_avg_period_days_ago_v2": 80228.0,
+  "label_Above_1M_share_r1": 0.0,
+  "transaction_category_supermarket_sum_cnt_d15": 1.0,
+  "max_balance_rur_amt_1m_af": null
+} ,
+  client2: {
+  "id": 1,
+  "dt": "31.10.2024",
+  "turn_cur_cr_avg_act_v2": 306240.0,
+  "salary_6to12m_avg": null,
+  "hdb_bki_total_max_limit": "949500.0",
+  "dp_ils_paymentssum_avg_12m": null,
+  "hdb_bki_total_cc_max_limit": "230000.0",
+  "incomeValue": 108834.0,
+  "gender": "????ó?ü",
+  "avg_cur_cr_turn": 63513.0,
+  "adminarea": "öø?ø????óø? ???ø???",
+  "turn_cur_cr_avg_v2": 25520.0,
+  "turn_cur_cr_max_v2": 40000.0,
+  "hdb_bki_total_pil_max_limit": "949500.0",
+  "age": 46,
+  "dp_ils_avg_salary_1y": null,
+  "turn_cur_cr_sum_v2": 306240.0,
+  "by_category__amount__sum__eoperation_type_name__ishodjaschij_bystryj_platezh_sbp": 1619.178082,
+  "turn_cur_db_sum_v2": 293559.04,
+  "turn_cur_db_avg_act_v2": 293559.04,
+  "dp_ils_avg_salary_2y": null,
+  "curr_rur_amt_cm_avg": 3375.0,
+  "turn_cur_db_avg_v2": 24463.25333,
+  "by_category__amount__sum__eoperation_type_name__vhodjaschij_bystryj_platezh_sbp": 2301.369863,
+  "dp_ils_paymentssum_avg_6m": null,
+  "avg_cur_db_turn": 60123.0,
+  "hdb_bki_active_cc_max_limit": "230000.0",
+  "incomeValueCategory": 6.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__vydacha_nalichnyh_v_bankomate": null,
+  "avg_credit_turn_rur": 88566.0,
+  "dp_ils_salary_ratio_1y3y": null,
+  "by_category__amount__sum__eoperation_type_name__perevod_po_nomeru_telefona": 986.3013699,
+  "turn_cur_cr_7avg_avg_v2": 25246.66667,
+  "dp_ils_accpayment_avg_12m": null,
+  "curbal_usd_amt_cm_avg": 122,
+  "avg_by_category__amount__sum__cashflowcategory_name__supermarkety": 155.9819178,
+  "avg_loan_cnt_with_insurance": 1.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__gipermarkety": 389.610411,
+  "city_smart_name": "öø?ø???",
+  "uniV5": 0.0142499,
+  "turn_cur_db_max_v2": 50000.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__kafe": 814.8821918,
+  "turn_other_db_max_v2": 19843.14,
+  "turn_cur_cr_min_v2": 306240.0,
+  "hdb_bki_other_active_pil_outstanding": null,
+  "dp_ewb_last_employment_position": null,
+  "turn_cur_db_min_v2": 293559.04,
+  "hdb_bki_total_products": "5.0",
+  "per_capita_income_rur_amt": 35665.0,
+  "avg_debet_turn_rur": 73537.0,
+  "hdb_relend_active_max_psk": 61.594,
+  "dda_rur_amt_curr_v2": 16349.0,
+  "mob_cnt_days": 41.0,
+  "dp_ils_days_from_last_doc": null,
+  "avg_6m_money_transactions": 0.0,
+  "transaction_category_supermarket_percent_cnt_2m": null,
+  "pil": 0.0,
+  "hdb_bki_total_max_overdue_sum": "0.0",
+  "avg_6m_clothing": 199.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__elektronnye_dengi": null,
+  "addrref": "öø?ø????óø? ???ø???",
+  "bki_total_auto_cnt": "0.0",
+  "dp_payoutincomedata_payout_avg_3_month": null,
+  "hdb_outstand_sum": 89951.44141,
+  "avg_3m_money_transactions": 0.0,
+  "dp_address_unique_regions": null,
+  "min_balance_rur_amt_6m_af": null,
+  "transaction_category_supermarket_sum_cnt_m3_4": 9.0,
+  "dp_payoutincomedata_payout_max_3_month": null,
+  "hdb_bki_total_ip_max_limit": null,
+  "hdb_bki_total_cnt": "23.0",
+  "blacklist_flag": 0,
+  "bki_total_oth_cnt": "0.0",
+  "dp_payoutincomedata_payout_sum_3_month": null,
+  "hdb_relend_outstand_sum": 89951.44141,
+  "total_rur_amt_cm_avg": 29630.0,
+  "mob_cover_days": 0.455555556,
+  "dp_payoutincomedata_payout_max_6_month": null,
+  "label_Below_50k_share_r1": 0.666666667,
+  "turn_fdep_db_sum_v2": null,
+  "dp_ils_accpayment_avg_6m_current": null,
+  "transaction_category_cash_percent_amt_2m": null,
+  "curr_rur_amt_3m_avg": 10960.0,
+  "transaction_category_restaurants_sum_amt_m2": null,
+  "loan_cnt": 1.0,
+  "turn_fdep_db_avg_v2": null,
+  "turn_cur_db_7avg_avg_v2": 14029.6,
+  "bki_total_ip_max_outstand": null,
+  "amount_by_category_90d__summarur_amt__sum__cashflowcategory_name__vydacha_nalichnyh_v_bankomate": null,
+  "profit_income_out_rur_amt_12m": 103.0,
+  "avg_6m_hotels": 0.0,
+  "hdb_ovrd_sum": 0.0,
+  "dp_ils_total_seniority": null,
+  "dp_ils_paymentssum_avg_6m_current": null,
+  "smsInWavg6m": 155.727,
+  "avg_fdep_db_turn": 0.0,
+  "device_iphone_avg": 0.966292135,
+  "by_category__amount__sum__eoperation_type_name__platezh_za_mobilnyj_cherez_ps": null,
+  "avg_balance_rur_amt_1m_af": null,
+  "curr_rur_amt_cm_avg_period_days_ago_v2": 10778.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__oteli": null,
+  "hdb_bki_total_ip_cnt": "0.0",
+  "hdb_bki_active_cc_max_outstand": "50000.0",
+  "hdb_other_outstand_sum": 50000.0,
+  "days_to_last_transaction": 2.0,
+  "hdb_bki_total_pil_max_overdue": "0.0",
+  "vert_pil_last_credit_step_screen_view_3m": 0.0,
+  "acard": 0.0,
+  "bki_total_il_max_limit": "949500.0",
+  "other_credits_count": 1.0,
+  "tz_msk_timedelta": 1.0,
+  "turn_save_db_min_v2": 58500.0,
+  "profit_income_out_rur_amt_9m": 101.4444444,
+  "dp_ils_ipkcurrentyear_currentyearpensfactor": null,
+  "avg_by_category__amount__sum__cashflowcategory_name__odezhda": 100.6849315,
+  "cntOnnRinCallAvg6m": null,
+  "dda_rur_amt_3m_avg": 25122.0,
+  "winback_cnt": 1,
+  "salary_median_in_gex_r1": 42850.98484,
+  "dp_payoutincomedata_payout_avg_prev_year": null,
+  "avg_amount_daily_transactions_90d": 396.8222222,
+  "vert_has_app_ru_tinkoff_investing": 0.0,
+  "transaction_category_supermarket_inc_cnt_2m": null,
+  "vert_pil_sms_success_3m": 0.0,
+  "min_balance_rur_amt_1m_af": null,
+  "dp_ils_max_seniority": null,
+  "avg_by_category__amount__sum__cashflowcategory_name__set_supermarketov": null,
+  "label_500k_to_1M_share_r1": 0.0,
+  "avg_by_category__amount__sum__cashflowcategory_name__zarubezhnye_finansovye_operatsii": null,
+  "bki_total_products": "2.0",
+  "avg_6m_all": 11871.0,
+  "dp_ils_avg_simultanious_jobs_5y": null,
+  "dp_ewb_dismissal_due_contract_violation_by_lb_cnt": null,
+  "summarur_1m_purch": 13112.0,
+  "diff_avg_cr_db_turn": 15029.84667,
+  "dp_ils_cnt_changes_1y": null,
+  "dp_ils_employeers_cnt_last_month": null,
+  "dp_payoutincomedata_payout_avg_6_month": null,
+  "dp_ewb_last_organization": null,
+  "by_category__amount__sum__eoperation_type_name__perevod_mezhdu_svoimi_schetami": 5120.547945,
+  "bki_active_auto_cnt": "0.0",
+  "turn_other_cr_avg_act_v2": 32846.98,
+  "cntVoiceOutMob6m": 392.2,
+  "avg_by_category__amount__sum__cashflowcategory_name__puteshestvija": null,
+  "loanacc_rur_amt_cm_avg": 0.0,
+  "transaction_category_supermarket_sum_cnt_m2": null,
+  "transaction_category_supermarket_sum_amt_d15": null,
+  "avg_fdep_cr_turn": 0.0,
+  "transaction_category_restaurants_percent_cnt_2m": null,
+  "bki_total_max_limit": "949500.0",
+  "avg_by_category__amount__sum__cashflowcategory_name__reklama_v_internete": null,
+  "transaction_category_restaurants_percent_amt_2m": null,
+  "turn_fdep_db_avg_act_v2": null,
+  "dp_ils_accpayment_avg_6m": null,
+  "turn_other_cr_sum_v2": 98540.94,
+  "client_active_flag": 1,
+  "avg_by_category__amount__sum__cashflowcategory_name__produkty": 375.8605479,
+  "curr_rur_amt_cm_avg_inc_v2": -3.0,
+  "nonresident_flag": 0,
+  "avg_by_category__amount__sum__cashflowcategory_name__kosmetika": null,
+  "vert_has_app_ru_vtb_invest": 0.0,
+  "dp_ils_avg_salary_3y": null,
+  "hdb_bki_total_auto_max_limit": null,
+  "days_after_last_request": 8.0,
+  "cntRegionTripsWavg1m": 0.6489,
+  "vert_has_app_ru_cian_main": 0.0,
+  "loanacc_rur_amt_curr_v2": 0.0,
+  "avg_3m_no_cat": 0.0,
+  "vert_ghost_close_dpay3_last_days": 0.0,
+  "vert_has_app_ru_raiffeisennews": 0.0,
+  "dp_ils_days_ip_share_5y": null,
+  "avg_by_category__amount__sum__cashflowcategory_name__platezhi_cherez_internet": null,
+  "hdb_bki_total_micro_max_overdue": null,
+  "bki_total_active_products": "1.0",
+  "by_category__amount__sum__eoperation_type_name__perevod_s_karty_na_kartu": null,
+  "calledCtnOutGroup": null,
+  "vert_pil_loan_application_success_3m": 0.0,
+  "vert_pil_fee_discount_change_3m": 0.0,
+  "businessTelSubs": 0.0,
+  "profit_income_out_rur_amt_l2m": 276,
+  "avg_3m_healthcare_services": 0.0,
+  "dp_ils_paymentssum_month_avg": null,
+  "ovrd_sum": 0.0,
+  "hdb_bki_total_active_products": "3.0",
+  "hdb_bki_total_micro_cnt": "0.0",
+  "hdb_bki_active_pil_cnt": "0.0",
+  "loan_cur_amt": null,
+  "mob_total_sessions": 89.0,
+  "period_last_act_ad": null,
+  "dp_ils_days_multiple_job_share_2y": null,
+  "hdb_bki_total_cc_max_overdue": "0.0",
+  "lifetimeComp": 176.0,
+  "hdb_bki_total_pil_last_days": "553.0",
+  "amount_by_category_90d__summarur_amt__sum__cashflowcategory_name__elektronnye_dengi": null,
+  "turn_save_cr_max_v2": 20000.0,
+  "hdb_bki_active_pil_max_limit": null,
+  "dp_ils_accpayment_avg_3m": null,
+  "avg_6m_restaurants": 0.0,
+  "hdb_bki_total_pil_cnt": "2.0",
+  "transaction_category_fastfood_percent_cnt_2m": null,
+  "hdb_bki_total_pil_max_del90": "0.0",
+  "accountsalary_out_flag": 1,
+  "cntBlockWavg6m": 0.0186,
+  "express_rur_amt_cm_avg": 0.0,
+  "loanacc_rur_amt_cm_avg_inc_v2": 0.0,
+  "hdb_bki_last_product_days": "201.0",
+  "dp_ils_days_multiple_job_cnt_5y": null,
+  "dp_ils_accpayment_month_avg": null,
+  "cred_dda_rur_amt_3m_avg": 0.0,
+  "avg_3m_all": 11868.0,
+  "hdb_other_active_max_psk": 25.356,
+  "hdb_bki_other_active_ip_outstanding": null,
+  "total_sum": 0.0,
+  "dp_ils_uniq_companies_1y": null,
+  "avg_6m_travel": 0.0,
+  "avg_6m_government_services": 0.0,
+  "hdb_bki_active_cc_max_overdue": "0.0",
+  "total_rur_amt_cm_avg_period_days_ago_v2": 24888.0,
+  "label_Above_1M_share_r1": 0.0,
+  "transaction_category_supermarket_sum_cnt_d15": null,
+  "max_balance_rur_amt_1m_af": null
+}
+}
+</script>
+
+<script>
+    
+    let incomeChart, shapChart;
+    let historyLabels = [];
+    let historyValues = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initCharts();
+    });
+
+    function initCharts() {
+        const incomeCtx = document.getElementById('incomeChart').getContext('2d');
+        incomeChart = new Chart(incomeCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Прогноз дохода, ₽',
+                    data: [],
+                    tension: 0.3,
+                    fill: false,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: 'Запрос' } },
+                    y: { title: { display: true, text: 'Доход' } }
+                }
+            }
+        });
+
+        const shapCtx = document.getElementById('shapChart').getContext('2d');
+        shapChart = new Chart(shapCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'SHAP-вклад',
+                    data: [],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { font: { size: 10 } } },
+                    y: { title: { display: true, text: 'Вклад' } }
+                }
+            }
+        });
+    }
+
+    
+    const FEATURE_NAME_MAP = {
+        hdb_bki_total_pil_max_limit_enc: 'Макс. лимит ПИЛ (БКИ)',
+        hdb_bki_active_cc_max_outstand_enc: 'Макс. долг по картам',
+        hdb_bki_total_max_limit_enc: 'Суммарный кредитный лимит',
+        bki_total_il_max_limit_enc: 'Макс. лимит ИЛ',
+        hdb_bki_other_active_pil_outstanding_enc: 'Долг по др. ПИЛ',
+        hdb_bki_total_max_overdue_sum_enc: 'Макс. сумма просрочки'
+        // при желании можно дописать ещё
+    };
+
+    
+    function prettyFeatureName(raw) {
+        if (FEATURE_NAME_MAP[raw]) return FEATURE_NAME_MAP[raw];
+
+        let name = raw
+            .replace(/^hdb_/, '')
+            .replace(/^bki_/, '')
+            .replace(/_enc$/, '');
+
+        const parts = name.split('_');
+        if (parts.length > 4) {
+            name = parts.slice(0, 4).join(' ') + '…';
+        } else {
+            name = parts.join(' ');
+        }
+        return name;
+    }
+
+    async function sendClient(clientKey) {
+        const statusElem = document.getElementById('status');
+        const incomeElem = document.getElementById('income');
+        const incomeSubElem = document.getElementById('income-sub');
+        const shapList = document.getElementById('shap-list');
+        const recoList = document.getElementById('reco-list');
+        const pill = document.getElementById('segment-pill');
+        const pillText = document.getElementById('segment-text');
+
+        const btn1 = document.getElementById('btn-client1');
+        const btn2 = document.getElementById('btn-client2');
+        btn1.disabled = true;
+        btn2.disabled = true;
+
+        statusElem.textContent = 'Отправляем профиль клиента в ML-модель...';
+        statusElem.className = 'status loading';
+
+        const payload = { data: clients[clientKey] };
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error('Ошибка ответа API: ' + text);
+            }
+
+            const result = await response.json();
+            renderResult(result);
+            statusElem.textContent = 'Прогноз успешно получен от ML-модели.';
+            statusElem.className = 'status ok';
+
+            const income = result.predicted_income;
+            pill.style.display = 'inline-flex';
+            if (income > 150000) {
+                pillText.textContent = 'Высокий доход · премиальный сегмент';
+            } else if (income > 70000) {
+                pillText.textContent = 'Средний доход · массовый обеспеченный сегмент';
+            } else {
+                pillText.textContent = 'Низкий доход · базовый сегмент';
+            }
+        } catch (err) {
+            console.error(err);
+            incomeElem.innerText = '—';
+            incomeSubElem.textContent = 'Во время запроса произошла ошибка.';
+            shapList.innerHTML = '<li class="shap-item">Не удалось получить объяснение прогноза.</li>';
+            recoList.innerHTML = `
+                <li class="reco-item">
+                    <div class="reco-icon">⚠️</div>
+                    <div class="reco-content">
+                        <div class="reco-title">Нет рекомендаций</div>
+                        <div class="reco-reason">Ошибка при обращении к API.</div>
+                    </div>
+                </li>`;
+            statusElem.textContent = 'Ошибка: ' + err.message;
+            statusElem.className = 'status error';
+        } finally {
+            btn1.disabled = false;
+            btn2.disabled = false;
+        }
+    }
+
+    function renderResult(result) {
+        const incomeElem = document.getElementById('income');
+        const incomeSubElem = document.getElementById('income-sub');
+        const shapList = document.getElementById('shap-list');
+        const recoList = document.getElementById('reco-list');
+
+        const income = result.predicted_income;
+        incomeElem.innerText = income.toFixed(2) + ' ₽';
+        incomeSubElem.textContent = 'Прогнозируемый ежемесячный доход клиента.';
+
+        // обновляем историю для графика
+        if (incomeChart) {
+            historyLabels.push(historyLabels.length + 1);
+            historyValues.push(income);
+            incomeChart.data.labels = historyLabels;
+            incomeChart.data.datasets[0].data = historyValues;
+            incomeChart.update();
+        }
+
+        // SHAP-объяснение
+        shapList.innerHTML = '';
+        let top = [];
+        if (result.shap_explanation) {
+            const { shap_values, features, feature_values } = result.shap_explanation;
+
+            const triples = features.map((f, i) => ({
+                feature: f,
+                value: feature_values[i],
+                contribution: shap_values[i]
+            }));
+
+            triples.sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+            top = triples.slice(0, 6);
+
+            const maxAbs = Math.max(...top.map(t => Math.abs(t.contribution))) || 1;
+
+            top.forEach((t, idx) => {
+                const li = document.createElement('li');
+                li.className = 'shap-item';
+
+                const barWidth = Math.round(Math.abs(t.contribution) / maxAbs * 100);
+                const direction = t.contribution >= 0 ? '▲' : '▼';
+
+                li.innerHTML =
+                    `<div class="shap-name-row">
+                        <span class="shap-name">${prettyFeatureName(t.feature)}</span>
+                        <span class="shap-rank">№${idx + 1} · ${direction}</span>
+                     </div>
+                     <div class="shap-bar">
+                        <div class="shap-bar-fill" style="width:${barWidth}%"></div>
+                     </div>`;
+                shapList.appendChild(li);
+            });
+        } else {
+            shapList.innerHTML = '<li class="shap-item">SHAP-объяснение недоступно.</li>';
+        }
+
+        // обновляем бар-чарт по SHAP
+        if (shapChart && top.length > 0) {
+            shapChart.data.labels = top.map(t => prettyFeatureName(t.feature));
+            shapChart.data.datasets[0].data = top.map(t => t.contribution);
+            shapChart.update();
+        }
+
+        // Рекомендации с «картинками»
+        recoList.innerHTML = '';
+        if (income > 150000) {
+            recoList.innerHTML += `
+                <li class="reco-item">
+                    <div class="reco-icon">💳</div>
+                    <div class="reco-content">
+                        <div class="reco-title">Премиальная кредитная карта</div>
+                        <div class="reco-reason">Высокий прогнозный доход — можно предложить премиальные условия и расширенный лимит.</div>
+                    </div>
+                </li>`;
+            recoList.innerHTML += `
+                <li class="reco-item">
+                    <div class="reco-icon">📈</div>
+                    <div class="reco-content">
+                        <div class="reco-title">Инвестиционный / брокерский счёт</div>
+                        <div class="reco-reason">Клиент может быть заинтересован в инвестиционных продуктах и управлении капиталом.</div>
+                    </div>
+                </li>`;
+        } else if (income > 70000) {
+            recoList.innerHTML += `
+                <li class="reco-item">
+                    <div class="reco-icon">💳</div>
+                    <div class="reco-content">
+                        <div class="reco-title">Классическая кредитная карта</div>
+                        <div class="reco-reason">Стабильный доход — можно предложить кредитную карту с комфортным лимитом и кэшбэком.</div>
+                    </div>
+                </li>`;
+            recoList.innerHTML += `
+                <li class="reco-item">
+                    <div class="reco-icon">💰</div>
+                    <div class="reco-content">
+                        <div class="reco-title">Накопительный счёт</div>
+                        <div class="reco-reason">Доход позволяет формировать сбережения, уместно предложить простой накопительный продукт.</div>
+                    </div>
+                </li>`;
+        } else {
+            recoList.innerHTML += `
+                <li class="reco-item">
+                    <div class="reco-icon">💳</div>
+                    <div class="reco-content">
+                        <div class="reco-title">Дебетовая карта с кэшбэком</div>
+                        <div class="reco-reason">Фокус на выгодных повседневных расходах и контроле бюджета.</div>
+                    </div>
+                </li>`;
+            recoList.innerHTML += `
+                <li class="reco-item">
+                    <div class="reco-icon">🛡️</div>
+                    <div class="reco-content">
+                        <div class="reco-title">Базовый накопительный продукт</div>
+                        <div class="reco-reason">Помогает сформировать подушку безопасности без избыточной кредитной нагрузки.</div>
+                    </div>
+                </li>`;
+        }
+    }
+</script>
+</body>
+</html>
