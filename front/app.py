@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
 import numpy as np
 import joblib
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -11,46 +12,72 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Income Prediction API", version="1.0.0")
 
-model_bundle = None
-target_encoders = {}
-global_mean = 0.0
-median_values = pd.Series()
-feature_columns = []
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+model_cat = None
+model_lgb = None
+explainer = None
+cat_features = []
+blend_weight = 0.5
+feature_names = []
+
 
 class ClientData(BaseModel):
     data: Dict[str, Any]
+
 
 class PredictionResponse(BaseModel):
     predicted_income: float
     shap_explanation: Optional[Dict[str, Any]] = None
 
+
 @app.on_event('startup')
 def startup_event():
-    global model_bundle, target_encoders, global_mean, median_values, feature_columns
+    global model_cat, model_lgb, explainer, cat_features, blend_weight, feature_names
     logger.info("Загрузка модели и метаданных препроцессинга...")
     try:
-        bundle_path = '../MLDS/model_bundle.pkl'
+        bundle_path = 'model_bundle.pkl'
         bundle = joblib.load(bundle_path)
 
-        model_bundle = bundle
-        target_encoders = bundle['target_encoders']
-        global_mean = bundle['global_mean']
-        median_values = bundle['median_values']
-        feature_columns = bundle['feature_columns']
+        model_cat = bundle['catboost']
+        model_lgb = bundle['lightgbm']
+        explainer = bundle['explainer']
+        cat_features = bundle['cat_features']
+        blend_weight = bundle['blend_weight']
+        feature_names = bundle['feature_names']
 
         logger.info("Модель и метаданные успешно загружены.")
-        logger.info(f"Количество финальных признаков: {len(feature_columns)}")
-        logger.info(f"Количество категориальных признаков (для Target Encoding): {len(target_encoders)}")
+        logger.info(f"Количество признаков: {len(feature_names)}")
+        logger.info(f"Категориальных признаков: {len(cat_features)}")
+        logger.info(f"Blend weight: CatBoost={blend_weight:.2f}, LightGBM={1 - blend_weight:.2f}")
 
     except FileNotFoundError:
         logger.error("Файл model_bundle.pkl не найден.")
         raise RuntimeError("Файл model_bundle.pkl не найден.")
     except KeyError as e:
-        logger.error(f"Ключ {e} не найден в model_bundle.pkl. Убедитесь, что main.py был обновлён и model_bundle.pkl пересоздан.")
+        logger.error(f"Ключ {e} не найден в model_bundle.pkl.")
         raise RuntimeError(f"model_bundle.pkl повреждён или устарел: {e}")
     except Exception as e:
         logger.error(f"Ошибка при загрузке модели: {e}")
         raise RuntimeError(f"Ошибка при загрузке модели: {e}")
+
+
+def safe_float(value):
+    if value is None or value == '' or value == 'null' or value == 'nan':
+        return np.nan
+    if isinstance(value, str):
+        value = value.replace(',', '.')
+    try:
+        return float(value)
+    except:
+        return np.nan
+
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict_income(client_data: ClientData):
@@ -60,38 +87,49 @@ async def predict_income(client_data: ClientData):
         input_dict = client_data.data
         df_input = pd.DataFrame([input_dict])
 
-        df_input = df_input.drop(columns=['id', 'target', 'w'], errors='ignore')
+        df_input = df_input.drop(columns=['id', 'target', 'w', 'dt'], errors='ignore')
 
-        for col, enc_map in target_encoders.items():
-            new_col_name = col + '_enc'
-            df_input[new_col_name] = df_input[col].map(enc_map).fillna(global_mean)
+        for col in df_input.columns:
+            if col in cat_features:
+                df_input[col] = df_input[col].fillna('missing').astype(str)
+            else:
+                df_input[col] = df_input[col].apply(safe_float)
 
-        df_input = df_input.fillna(median_values)
+        num_cols = [col for col in df_input.columns if col not in cat_features]
+        medians = df_input[num_cols].median()
+        df_input[num_cols] = df_input[num_cols].fillna(medians)
 
-        for col in target_encoders.keys():
-            df_input[col] = df_input[col].astype(str).fillna('missing')
-
-        df_input = df_input.drop(columns=list(target_encoders.keys()))
-
-        for col in feature_columns:
+        missing_cols = {}
+        for col in feature_names:
             if col not in df_input.columns:
-                df_input[col] = median_values.get(col, 0)
-        df_input = df_input[feature_columns]
+                if col in cat_features:
+                    missing_cols[col] = 'missing'
+                else:
+                    missing_cols[col] = 0.0
+
+        if missing_cols:
+            df_missing = pd.DataFrame([missing_cols])
+            df_input = pd.concat([df_input, df_missing], axis=1)
+
+        df_input = df_input[feature_names]
+
+        for col in cat_features:
+            if col in df_input.columns:
+                df_input[col] = df_input[col].astype(str)
 
         logger.debug(f"Входные данные после препроцессинга: {df_input.shape}")
 
-        cb_model = model_bundle['cb']
-        lgb_model = model_bundle['lgb']
-        blend_weights = model_bundle['blend_weights']
-        explainer = model_bundle['explainer']
+        pred_cat = model_cat.predict(df_input)
 
-        pred_cb = cb_model.predict(df_input)
-        pred_lgb = lgb_model.predict(df_input)
+        df_input_lgb = df_input.copy()
+        for col in cat_features:
+            if col in df_input_lgb.columns:
+                df_input_lgb[col] = df_input_lgb[col].astype('category')
 
-        pred_blend_log = blend_weights[0] * pred_cb + blend_weights[1] * pred_lgb
+        pred_lgb = model_lgb.predict(df_input_lgb)
 
-        predicted_income_log = pred_blend_log[0]
-        predicted_income = np.expm1(predicted_income_log)
+        pred_blend = blend_weight * pred_cat + (1 - blend_weight) * pred_lgb
+        predicted_income = float(pred_blend[0])
 
         shap_values = None
         try:
@@ -102,7 +140,7 @@ async def predict_income(client_data: ClientData):
                 "features": df_input.columns.tolist(),
                 "feature_values": df_input.iloc[0].tolist()
             }
-            logger.debug(f"SHAP explanation сгенерировано.")
+            logger.debug("SHAP explanation сгенерировано.")
         except Exception as e_shap:
             logger.warning(f"Не удалось получить SHAP explanation: {e_shap}")
 
@@ -114,9 +152,10 @@ async def predict_income(client_data: ClientData):
         )
 
     except Exception as e:
-        logger.error(f"Ошибка в /predict: {e}")
+        logger.error(f"Ошибка в /predict: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Ошибка при обработке запроса: {e}")
+
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "model_loaded": model_bundle is not None}
+    return {"status": "ok", "model_loaded": model_cat is not None and model_lgb is not None}
