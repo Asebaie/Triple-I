@@ -1,2 +1,0 @@
-model_bundle.pkl
-https://drive.google.com/file/d/16FdKZGtYp0jy0e85FL5xpGHdAd8kqkO-/view?usp=share_link
