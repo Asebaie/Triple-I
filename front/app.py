@@ -1,10 +1,3 @@
-'''
---- Запуск ---
-uvicorn app:app --reload --port 8000
-API будет доступно по http://127.0.0.1:8000
-Документация по http://127.0.0.1:8000/docs
-'''
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import pandas as pd
