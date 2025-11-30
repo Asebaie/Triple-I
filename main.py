@@ -7,6 +7,8 @@ import pandas as pd
 from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
 from sklearn.model_selection import KFold
+import joblib
+import shap
 
 os.makedirs("logs", exist_ok=True)
 log_file = f"logs/best_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
@@ -118,7 +120,7 @@ for fold, (tr, val) in enumerate(kf.split(X)):
 log(f"CV WMAE: {np.mean(cv_scores):,.0f} ± {np.std(cv_scores):,.0f}")
 
 
-final_w = np.mean(weights_list)  # ← СРЕДНИЙ ВЕС
+final_w = np.mean(weights_list)
 log(f"ФИНАЛЬНЫЙ ВЕС: CatBoost = {final_w:.2f}, LightGBM = {1-final_w:.2f}")
 pred_final = final_w * pred_cat + (1 - final_w) * pred_lgb
 log(f"Mean target: {pred_final.mean():,.0f}")
@@ -134,3 +136,46 @@ with open("report.txt", "w") as f:
     f.write(f"Blend weight: {final_w:.2f}\n")
     f.write(f"Mean target: {pred_final.mean():,.0f}\n")
 log("report.txt — ГОТОВ")
+
+
+log("Обучение финальных моделей для PKL")
+final_cat = CatBoostRegressor(
+    iterations=2000,
+    learning_rate=0.05,
+    depth=6,
+    l2_leaf_reg=10,
+    loss_function="RMSE",
+    random_seed=42,
+    verbose=0,
+    cat_features=cat_features,
+)
+final_cat.fit(X, y_raw)
+
+final_lgb = LGBMRegressor(
+    n_estimators=2000,
+    learning_rate=0.05,
+    max_depth=6,
+    num_leaves=64,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    random_state=42,
+    verbose=-1,
+)
+final_lgb.fit(X_lgb, y_raw)
+
+log("Создание SHAP explainer")
+explainer = shap.TreeExplainer(final_cat)
+
+log("Сохранение model_bundle.pkl")
+joblib.dump({
+    'catboost': final_cat,
+    'lightgbm': final_lgb,
+    'explainer': explainer,
+    'cat_features': cat_features,
+    'blend_weight': final_w,
+    'feature_names': X.columns.tolist(),
+    'cv_wmae': np.mean(cv_scores),
+    'cv_std': np.std(cv_scores)
+}, 'model_bundle.pkl')
+
+log("model_bundle.pkl — СОХРАНЁН")
