@@ -21,6 +21,3 @@
 4. Запустите `main.py`
 *ВНИМАНИЕ. Код выполняется примерно 20 минут и очень нагружает ЦП компьютера*
 5. На выходе вы получаете `sample_submission.csv`, `report.txt` и `model_bandle.pkl`
-
-## III.Презентация
-1. Её можно найти по ссылке https://docs.google.com/presentation/d/14JPRsUbEe2evk-sVOXze-mwL_796Iidn/edit?usp=share_link&ouid=100961175883164473277&rtpof=true&sd=true
