@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+sqlalchemy
+aiosqlite
+pydantic
+pymupdf
+streamlit
+requests
+httpx
+greenlet
+networkx
+matplotlib
+python-dotenv
+scipy

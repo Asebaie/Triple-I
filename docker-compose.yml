@@ -1,0 +1,11 @@
+services:
+  banana-app:
+    container_name: banana-app
+    build: .
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
