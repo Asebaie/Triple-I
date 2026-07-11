@@ -27,10 +27,10 @@
 ## Как запустить проект локально
 
 ### Шаг 1. Настройка окружения
-Создайте в корне проекта файл `.env` и пропишите в него ваши ключи GigaChat API (или используйте .env предоставленный в репозитории):
+Пропишите в файл `.env` ваши ключи GigaChat API:
 ```env
-GIGACHAT_CLIENT_ID=ваш_client_id_сбер_студии
-GIGACHAT_CLIENT_SECRET=ваш_client_secret_сбер_студии
+GIGACHAT_CLIENT_ID=<YOUR_ID>
+GIGACHAT_CLIENT_SECRET=<YOUR_SECRET>
 GIGACHAT_SCOPE=GIGACHAT_API_PERS
 ```
 
