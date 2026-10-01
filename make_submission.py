@@ -50,7 +50,7 @@ def main():
     parser.add_argument("--no_stack", action="store_true")
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--only_first_fold", action="store_true")
-    parser.add_argument("--submission", default="submission")
+    parser.add_argument("--submission", default="inference")
     parser.add_argument("--zip_path", default="submission.zip")
     parser.add_argument("--log_dir", default="logs")
     parser.add_argument("--clean", action="store_true")
@@ -63,8 +63,8 @@ def main():
     os.makedirs(models_dir, exist_ok=True)
 
     for module in ("matching.py", "lgbm_numpy.py", "attr_priority.py"):
-        shutil.copy2(os.path.join(BASE_DIR, "ecup", module), os.path.join(submission_dir, "src", module))
-    logger.info("Модули ecup синхронизированы в submission/src")
+        shutil.copy2(os.path.join(BASE_DIR, "core", module), os.path.join(submission_dir, "src", module))
+    logger.info("Модули core синхронизированы в inference/src")
 
     init_path = os.path.join(submission_dir, "src", "__init__.py")
     if not os.path.exists(init_path):
