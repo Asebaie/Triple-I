@@ -1,0 +1,21 @@
+name: Main PR auto-close
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, edited]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  autoclose:
+    name: Close PR into main
+    if: github.event.pull_request.state == 'open'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --comment "Changes to main go through git push only, pull requests into main are closed automatically."
