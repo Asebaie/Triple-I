@@ -1,0 +1,11 @@
+{
+  "base_model": "e5small_llm15_len448",
+  "max_len": 448,
+  "attr_keys": true,
+  "categories": [
+    "Одежда",
+    "Обувь",
+    "Ювелирные изделия"
+  ],
+  "weight": 1.0
+}

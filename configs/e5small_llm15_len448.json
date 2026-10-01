@@ -1,0 +1,5 @@
+{
+  "base_model": "intfloat/multilingual-e5-small, предобучение на 1.5М LLM-пар",
+  "max_len": 448,
+  "attr_keys": true
+}

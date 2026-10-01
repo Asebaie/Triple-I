@@ -1,0 +1,11 @@
+{
+  "base_model": "general_rubert, фолд к фолду",
+  "max_len": 320,
+  "attr_keys": true,
+  "categories": [
+    "Одежда",
+    "Обувь",
+    "Ювелирные изделия"
+  ],
+  "weight": 2.0
+}

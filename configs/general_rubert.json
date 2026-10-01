@@ -1,0 +1,5 @@
+{
+  "base_model": "ai-forever/ruBert-base, предобучение на LLM-разметке",
+  "max_len": 320,
+  "attr_keys": true
+}
