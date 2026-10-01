@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.DS_Store
+__init__.py
+requirements.txt
+.idea/
+logs/
+data/
+oof/
+artifacts*/
+inference/models/
+submission/*.txt
+inference/src/__init__.py
+inference/src/matching.py
+inference/src/lgbm_numpy.py
+inference/src/attr_priority.py
+*.zip
