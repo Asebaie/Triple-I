@@ -4,22 +4,22 @@
 
 ## Структура репозитория
 
-- **`main`**: Основная ветка с описанием репозитория.
+- `main`: Основная ветка с описанием репозитория.
   
-- **`alfa_bank`**: Решение для хакатона [Альфа-Банк Hack&Change 2025](https://disk.360.yandex.ru/d/cs90B-Kb7Qya7Q).  
+- [`alfa_bank`](../../tree/alfa_bank): Решение для хакатона [Альфа-Банк Hack&Change 2025](https://disk.360.yandex.ru/d/cs90B-Kb7Qya7Q).  
   Цель проекта — разработка AI-модели для прогнозирования дохода клиентов банка и прототипа системы персонализированных рекомендаций.  
 
-- **`netflix`**: Рекомендательная система на основе автоэнкодеров, обученная на датасете [Netflix Prize Data](https://www.kaggle.com/datasets/netflix-inc/netflix-prize-data).  
+- [`netflix`](../../tree/netflix): Рекомендательная система на основе автоэнкодеров, обученная на датасете [Netflix Prize Data](https://www.kaggle.com/datasets/netflix-inc/netflix-prize-data).  
   Цель — исследование возможностей глубокого обучения для построения персонализированных рекомендаций.  
 
-- **`cocrystal`**: Решение для хакатона [RASCAR Cocrystal Challenge](https://www.kaggle.com/competitions/rascar-cocrystal-challenge/overview), организованного [RASCAR](https://t.me/rascar_ai).  
+- [`cocrystal`](../../tree/cocrystal): Решение для хакатона [RASCAR Cocrystal Challenge](https://www.kaggle.com/competitions/rascar-cocrystal-challenge/overview), организованного [RASCAR](https://t.me/rascar_ai).  
   Цель проекта — бинарная классификация молекулярных пар: предсказание образования сокристалла по SMILES-представлениям двух молекул.  
   
-- **`spectral_class`**: Исследование методов классификации гиперспектральных изображений.  
+- [`spectral_class`](../../tree/spectral_class): Исследование методов классификации гиперспектральных изображений.  
   Цель проекта — сравнительный анализ классических ML-подходов (SVM с оптимизацией гиперпараметров через Optuna) и глубокого обучения (1D CNN), а также оценка эффективности моделей по числу обучаемых параметров.
 
-- **`nornikel`**: Решение для хакатона [Норникель AI Hackathon](https://nornickel-ai-hackathon.ru) (трек «Научный клубок»).  
+- [`nornikel`](../../tree/nornikel): Решение для хакатона [Норникель AI Hackathon](https://nornickel-ai-hackathon.ru) (трек «Научный клубок»).  
   Цель проекта — разработка суверенной поисково-аналитической системы на базе российских AI-API, реализующей отход от классического RAG в сторону гибридного структурированного поиска.
 
-- **`e-cup`**: Решение для хакатона [E-CUP 2026](https://ods.ai/competitions/e-cup-2026-matching) (трек «Матчинг товаров»).  
+- [`e-cup`](../../tree/e-cup): Решение для хакатона [E-CUP 2026](https://ods.ai/competitions/e-cup-2026-matching) (трек «Матчинг товаров»).  
   Цель проекта — бинарная классификация пар карточек маркетплейса на реальных данных Ozon Tech: определение по названию, категории и атрибутам, является ли пара одним и тем же товаром.
