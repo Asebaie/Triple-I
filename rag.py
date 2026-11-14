@@ -208,6 +208,9 @@ def select_context(index: Index, chunk_ids: list[int]) -> dict[int, set[int]]:
             head = next(i for i, chunk in enumerate(index.chunks) if chunk.doc == document.id)
             selection.setdefault(document.id, set()).add(head)
         selection.setdefault(document.id, set()).add(chunk_id)
+    for document in index.documents:
+        if len(document.text) <= WHOLE_DOC_CHARS:
+            selection.setdefault(document.id, set())
     return selection
 
 
