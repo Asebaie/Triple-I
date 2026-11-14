@@ -42,7 +42,7 @@ def cited_lines(document: rag.Document, answer: str) -> list[str]:
 
 def show_sources(answer: str, sources: list[tuple[rag.Document, list[rag.Chunk]]]) -> None:
     if not sources:
-        st.caption("Ответ не опирается на документы базы знаний.")
+        st.caption("Подтверждающие документы для этого ответа не указаны.")
         return
     with st.expander(f"Подтверждающие документы: {len(sources)}"):
         for document, chunks in sources:
