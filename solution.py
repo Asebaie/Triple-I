@@ -1,5 +1,4 @@
 import csv
-import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -12,7 +11,7 @@ FAILED_ANSWER = "Не удалось сформировать ответ: сер
 
 
 def main() -> None:
-    data_dir = Path(os.environ.get("DATA_DIR", "data"))
+    data_dir = Path(rag.env("DATA_DIR", "data"))
     with open(data_dir / "questions.csv", encoding="utf-8-sig", newline="") as file:
         questions = list(csv.DictReader(file))
     index = rag.build_index(data_dir)
@@ -25,13 +24,13 @@ def main() -> None:
             print(f"Вопрос {row['id']}: {error}", file=sys.stderr, flush=True)
             return FAILED_ANSWER
 
-    with ThreadPoolExecutor(int(os.environ["MAX_WORKERS"])) as pool:
+    with ThreadPoolExecutor(int(rag.env("MAX_WORKERS", "2"))) as pool:
         answers = list(pool.map(work, questions))
 
     with open("submission.csv", "w", encoding="utf-8", newline="") as file:
         writer = csv.writer(file, quoting=csv.QUOTE_ALL, lineterminator="\n")
         writer.writerow(["id", "answer"])
-        writer.writerows((row["id"], text) for row, text in zip(questions, answers))
+        writer.writerows((row["id"], " ".join(text.split())) for row, text in zip(questions, answers))
     print(f"submission.csv: {len(answers)} ответов", flush=True)
 
 

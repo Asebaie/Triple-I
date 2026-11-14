@@ -1,5 +1,4 @@
 import html
-import os
 import re
 from pathlib import Path
 
@@ -17,7 +16,7 @@ st.set_page_config(page_title="Юридический ассистент", page_
 
 @st.cache_resource(show_spinner="Индексирую базу знаний…")
 def load_index() -> rag.Index:
-    return rag.build_index(Path(os.environ.get("DATA_DIR", "data")))
+    return rag.build_index(Path(rag.env("DATA_DIR", "data")))
 
 
 def as_dialog(messages: list[dict]) -> str:

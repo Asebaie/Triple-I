@@ -11,18 +11,21 @@ import httpx
 import numpy as np
 from rank_bm25 import BM25Okapi
 
-API_BASE = (os.environ.get("LLM_BASE_URL") or os.environ["OPENAI_BASE_URL"]).rstrip("/")
-API_KEY = os.environ.get("LLM_API_KEY") or os.environ["OPENAI_API_KEY"]
-LLM_MODEL = os.environ.get("LLM_MODEL") or os.environ.get("OPENAI_MODEL") or os.environ["GEN_MODEL"]
-EMB_MODEL = os.environ["EMB_MODEL"]
-RERANKER_MODEL = os.environ.get("RERANKER_MODEL", "")
-TEMPERATURE = float(os.environ["TEMPERATURE"])
-MAX_TOKENS = int(os.environ["MAX_TOKENS"])
+def env(name: str, default: str = "") -> str:
+    value = os.environ.get(name, "").strip()
+    return default if value in ("", name) else value
+
+
+API_BASE = (env("LLM_BASE_URL") or env("OPENAI_BASE_URL")).rstrip("/")
+API_KEY = env("LLM_API_KEY") or env("OPENAI_API_KEY")
+LLM_MODEL = env("LLM_MODEL") or env("OPENAI_MODEL") or env("GEN_MODEL", "deepseek/deepseek-v4.1-flash")
+EMB_MODEL = env("EMB_MODEL", "baai/bge-m3")
+TEMPERATURE = float(env("TEMPERATURE", "0"))
+MAX_TOKENS = int(env("MAX_TOKENS", "1024"))
 
 CHUNK_CHARS = 1200
 WHOLE_DOC_CHARS = 8000
-CANDIDATES = 30
-RERANKED = 8
+RETRIEVED = 8
 RRF_K = 60
 EMB_BATCH = 64
 RETRIES = 4
@@ -76,7 +79,6 @@ class Chunk:
 class Index:
     documents: list[Document]
     chunks: list[Chunk]
-    texts: list[str]
     bm25: BM25Okapi
     vectors: np.ndarray
 
@@ -155,7 +157,7 @@ def build_index(data_dir: Path) -> Index:
     documents = load_documents(path)
     chunks = [chunk for document in documents for chunk in split_chunks(document)]
     texts = [f"{documents[c.doc].title}. {documents[c.doc].source}\n{c.text}" for c in chunks]
-    return Index(documents, chunks, texts, BM25Okapi([stems(text) for text in texts]), embed(texts))
+    return Index(documents, chunks, BM25Okapi([stems(text) for text in texts]), embed(texts))
 
 
 def retrieve(index: Index, question: str) -> list[int]:
@@ -165,16 +167,7 @@ def retrieve(index: Index, question: str) -> list[int]:
     fused = np.zeros(len(index.chunks))
     for ranking in rankings:
         fused[ranking] += 1 / (RRF_K + np.arange(1, len(ranking) + 1))
-    candidates = np.argsort(-fused)[:CANDIDATES].tolist()
-    if not RERANKER_MODEL:
-        return candidates[:RERANKED]
-    payload = {
-        "model": RERANKER_MODEL,
-        "query": question,
-        "documents": [index.texts[i] for i in candidates],
-        "top_n": RERANKED,
-    }
-    return [candidates[result["index"]] for result in post("/rerank", payload)["results"]]
+    return np.argsort(-fused)[:RETRIEVED].tolist()
 
 
 def family(document: Document) -> str:
